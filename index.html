@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>10 Minute Mail - Simple SPA</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <main class="container">
+    <h1>10 Minute Mail</h1>
+    <section class="controls">
+      <button id="generateBtn">Generate Temporary Address</button>
+      <div id="addressWrap" class="hidden">
+        <input id="emailInput" readonly>
+        <button id="copyBtn">Copy</button>
+      </div>
+      <div id="timer" class="hidden">10:00</div>
+    </section>
+
+    <section class="inbox">
+      <h2>Inbox</h2>
+      <div id="messages">
+        <p class="muted">No address yet. Generate one to start receiving mail.</p>
+      </div>
+    </section>
+
+    <section id="messageView" class="hidden">
+      <button id="backBtn">Back to Inbox</button>
+      <article>
+        <h3 id="msgSubject"></h3>
+        <div class="meta"><span id="msgFrom"></span> • <span id="msgDate"></span></div>
+        <div id="msgBody"></div>
+      </article>
+    </section>
+
+    <footer>
+      Uses the public 1secmail API for demonstration.
+    </footer>
+  </main>
+
+  <script src="app.js" type="module"></script>
+</body>
+</html>

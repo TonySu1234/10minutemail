@@ -1,0 +1,20 @@
+:root{--bg:#0f1720;--card:#0b1220;--accent:#06b6d4;--muted:#9ca3af;--text:#e6eef6}
+*{box-sizing:border-box}
+html,body,#root{height:100%}
+body{margin:0;font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial;color:var(--text);background:linear-gradient(180deg,#071028,#081426);padding:24px}
+.container{max-width:880px;margin:0 auto}
+h1{margin:0 0 12px}
+.controls{display:flex;gap:12px;align-items:center;margin-bottom:18px}
+button{background:var(--accent);border:0;padding:10px 12px;border-radius:8px;color:#022;cursor:pointer}
+button:disabled{opacity:.6;cursor:not-allowed}
+#addressWrap{display:flex;gap:8px;align-items:center}
+#emailInput{padding:8px;border-radius:8px;border:1px solid rgba(255,255,255,0.06);background:#071226;color:var(--text);min-width:260px}
+.inbox{background:rgba(255,255,255,0.02);padding:12px;border-radius:10px}
+.message{padding:10px;border-radius:8px;background:rgba(255,255,255,0.012);margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;gap:12px}
+.message .left{max-width:78%}
+.muted{color:var(--muted)}
+.hidden{display:none}
+#timer{font-weight:600;color:var(--accent)}
+#messageView{margin-top:14px;background:rgba(255,255,255,0.02);padding:12px;border-radius:10px}
+.meta{color:var(--muted);font-size:13px;margin-bottom:10px}
+#msgBody{background:#021827;padding:12px;border-radius:6px;color:var(--text);white-space:pre-wrap}
