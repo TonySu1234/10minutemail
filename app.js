@@ -1,4 +1,4 @@
-const API_BASE = 'https://www.1secmail.com/api/v1/';
+const API_BASE = 'https://api.mail.gw';
 
 const $ = sel => document.querySelector(sel);
 const generateBtn = $('#generateBtn');
@@ -31,15 +31,46 @@ async function generateAddress() {
   generateBtn.disabled = true;
   generateBtn.textContent = 'Generating...';
   try {
-    // 1secmail supports action=genRandomMailbox
-    const res = await fetch(`${API_BASE}?action=genRandomMailbox&count=1`);
-    const data = await res.json();
-    // returns ["xxxxx@1secmail.com"]
-    const email = data[0];
-    currentEmail = email;
-    emailInput.value = email;
+    // mail.gw flow: GET /domains -> POST /accounts -> POST /token
+    const domainsRes = await fetch(`${API_BASE}/domains`);
+    const domainsJson = await domainsRes.json();
+    const members = domainsJson['hydra:member'] || [];
+    if (!members.length) throw new Error('no domains available');
+    const domain = members[0].domain;
+
+    // create random username and password
+    const username = `tmp${Math.random().toString(36).slice(2,9)}`;
+    const address = `${username}@${domain}`;
+    const password = Math.random().toString(36).slice(2,12);
+
+    // JavaScript code starts here
+    const acctRes = await fetch(`${API_BASE}/accounts`, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({address, password})
+    });
+    if (!acctRes.ok) {
+      const txt = await acctRes.text();
+      throw new Error('create account failed: ' + txt);
+    }
+
+    // get token
+    const tokenRes = await fetch(`${API_BASE}/token`, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({address, password})
+    });
+    if (!tokenRes.ok) throw new Error('token request failed');
+    const tokenJson = await tokenRes.json();
+    const token = tokenJson.token;
+
+    currentEmail = address;
+    emailInput.value = address;
     addressWrap.classList.remove('hidden');
     timerEl.classList.remove('hidden');
+
+    // store token for authenticated requests
+    window.__mailgw = {token, account: tokenJson.id};
 
     // set 10 minutes from now
     const now = Date.now();
@@ -84,10 +115,16 @@ function stopPolling() {
 
 async function fetchMessages() {
   if (!currentEmail) return;
-  const [login, domain] = currentEmail.split('@');
   try {
-    const res = await fetch(`${API_BASE}?action=getMessages&login=${login}&domain=${domain}`);
-    const msgs = await res.json();
+    const token = window.__mailgw && window.__mailgw.token;
+    if (!token) return;
+    const res = await fetch(`${API_BASE}/messages`, {headers: {Authorization: `Bearer ${token}`}});
+    if (!res.ok) {
+      console.error('messages list failed', res.status);
+      return;
+    }
+    const json = await res.json();
+    const msgs = json['hydra:member'] || [];
     renderMessages(msgs);
   } catch (err) {
     console.error('fetchMessages error', err);
@@ -103,10 +140,11 @@ function renderMessages(msgs) {
   msgs.slice().reverse().forEach(m => {
     const div = document.createElement('div');
     div.className = 'message';
+    const fromAddr = (m.from && (m.from.address || (typeof m.from === 'string' ? m.from : ''))) || '';
     div.innerHTML = `
       <div class="left">
         <div class="sub">${escapeHtml(m.subject || '(no subject)')}</div>
-        <div class="muted">From: ${escapeHtml(m.from)}</div>
+        <div class="muted">From: ${escapeHtml(fromAddr)}</div>
       </div>
       <div>
         <button data-id="${m.id}" class="viewBtn">View</button>
@@ -122,9 +160,14 @@ function renderMessages(msgs) {
 }
 
 async function openMessage(id) {
-  const [login, domain] = currentEmail.split('@');
   try {
-    const res = await fetch(`${API_BASE}?action=readMessage&login=${login}&domain=${domain}&id=${id}`);
+    const token = window.__mailgw && window.__mailgw.token;
+    if (!token) return;
+    const res = await fetch(`${API_BASE}/messages/${id}`, {headers: {Authorization: `Bearer ${token}`}});
+    if (!res.ok) {
+      console.error('message fetch failed', res.status);
+      return;
+    }
     const msg = await res.json();
     showMessage(msg);
   } catch (err) {
@@ -135,10 +178,18 @@ async function openMessage(id) {
 function showMessage(msg) {
   messageView.classList.remove('hidden');
   msgSubject.textContent = msg.subject || '(no subject)';
-  msgFrom.textContent = msg.from || '';
-  msgDate.textContent = msg.date || '';
-  // 1secmail returns textBody/htmlBody
-  msgBody.innerHTML = msg.htmlBody || escapeHtml(msg.textBody || '(no content)');
+  // mail.gw has a `from` object and `createdAt`, `text`, `html` (array)
+  const fromAddr = (msg.from && (msg.from.address || msg.from)) || '';
+  msgFrom.textContent = fromAddr;
+  msgDate.textContent = msg.createdAt || msg.updatedAt || '';
+  if (msg.html && Array.isArray(msg.html) && msg.html.length) {
+    // prefer the first html block
+    msgBody.innerHTML = msg.html[0];
+  } else if (msg.text) {
+    msgBody.textContent = msg.text;
+  } else {
+    msgBody.textContent = '(no content)';
+  }
 }
 
 function escapeHtml(s) {

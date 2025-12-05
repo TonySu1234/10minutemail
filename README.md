@@ -1,6 +1,6 @@
 10 Minute Mail - Simple Static SPA
 
-This repository contains a minimal single-page app that uses the public 1secmail API to generate a temporary email address and poll for incoming messages.
+This repository contains a minimal single-page app that uses the Mail.gw API (https://docs.mail.gw/) to create a temporary email account and poll for incoming messages.
 
 Files
 - index.html — main HTML page
@@ -19,7 +19,8 @@ python3 -m http.server 8000
 ```
 
 Notes & assumptions
-- Uses the public 1secmail API at https://www.1secmail.com/api/v1/. This API is public and may have rate limits or availability differences.
+- Uses the Mail.gw API at https://api.mail.gw. The app creates an account (POST /accounts) and exchanges credentials for a token (POST /token) before listing messages (GET /messages).
+- Notes: the API requires a Bearer token for most endpoints. The SPA requests domains, registers an account under a random username, obtains a token, and then polls /messages.
 - If you see CORS errors in the browser, run via a local server as shown above.
 
 Improvements you can ask for
